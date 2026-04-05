@@ -472,31 +472,29 @@ export default function CrearPage() {
                   ) : (
                     <div className={styles.unlockBox}>
                       <h3 style={{color:'#d4af37'}}>⚠️ Sin créditos suficientes</h3>
-                      <p>Para descargar estas piezas en alta calidad necesitas saldo. Realiza una transferencia de <b>GTQ 25.00 (Q25)</b> para recargar 1 crédito.</p>
+                      <p>Para descargar estas piezas en alta calidad necesitas saldo. Realiza una recarga manual de créditos.</p>
                       
-                      <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'20px', margin:'20px auto', maxWidth:'400px', textAlign:'left'}}>
-                        <p style={{margin:'0 0 8px', color:'var(--text-secondary)', fontSize:'13px'}}>Banco destino</p>
-                        <p style={{margin:'0 0 16px', fontWeight:'700', fontSize:'18px', color:'white'}}>Banco Industrial</p>
-                        
-                        <p style={{margin:'0 0 8px', color:'var(--text-secondary)', fontSize:'13px'}}>No. de Cuenta (Monetaria)</p>
-                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                          <p style={{margin:'0', fontWeight:'700', fontSize:'22px', color:'var(--accent-color)', letterSpacing:'2px'}}>123-456789-0</p>
-                          <button onClick={() => { navigator.clipboard.writeText('1234567890'); alert('Copiado'); }} style={{background:'none', border:'none', color:'white', cursor:'pointer', padding:'4px'}}>📋</button>
-                        </div>
-                        <p style={{margin:'8px 0 0', color:'var(--text-secondary)', fontSize:'13px'}}>A nombre de: <b>Tu Nombre o Empresa</b></p>
+                      <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'24px', margin:'20px auto', maxWidth:'400px', textAlign:'center'}}>
+                        <h4 style={{margin:'0 0 12px', color:'white', fontSize:'16px'}}>Pasos para recargar:</h4>
+                        <ol style={{margin:'0', padding:'0 0 0 20px', textAlign:'left', color:'var(--text-secondary)', fontSize:'14px', lineHeight:'1.8'}}>
+                          <li>Comunícate con nuestro soporte vía WhatsApp.</li>
+                          <li>Solicita el número de cuenta.</li>
+                          <li>Deposita el valor de los créditos que quieras (<b>Q25 por 1 crédito</b>).</li>
+                          <li>Tus créditos serán recargados inmediatamente.</li>
+                        </ol>
                       </div>
 
                       <button 
                         className={styles.payBtn} 
                         style={{background:'#25D366', color:'white', fontSize:'16px', width:'100%', maxWidth:'400px'}}
                         onClick={() => {
-                          const whatsappMsg = `¡Hola! Acabo de hacer una transferencia para comprar 1 crédito en SGIA.\n\nMi correo registrado es: *${user?.email}*\n\nAdjunto comprobante 👇`;
-                          const whatsappNumber = "50200000000"; // Reemplazar
+                          const whatsappMsg = `¡Hola! Me gustaría solicitar el número de cuenta para recargar saldo (créditos) en mi cuenta de SGIA.\n\nMi correo registrado es: *${user?.email}*`;
+                          const whatsappNumber = "50230236365"; 
                           window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
                         }}>
-                        💬 Enviar Comprobante por WhatsApp
+                        💬 Solicitar Cuenta por WhatsApp
                       </button>
-                      <p className={styles.unlockNote}>Tus créditos se añadirán a tu cuenta en minutos.</p>
+                      <p className={styles.unlockNote}>Te atenderemos en breve.</p>
                     </div>
                   )}
                 </div>

@@ -112,34 +112,32 @@ export default function ComprarPage() {
             </div>
           ) : (
             <div className={styles.checkoutBox}>
-              <h3 style={{color:'#d4af37'}}>Transferencia Bancaria</h3>
+              <h3 style={{color:'#d4af37'}}>Recarga Manual</h3>
               <p className={styles.checkoutSummary}>
-                Paga <b>GTQ {selectedPack.priceGtq}</b> para comprar el paquete de {selectedPack.credits} crédito{selectedPack.credits > 1 ? 's' : ''}.
+                Invierte <b>GTQ {selectedPack.priceGtq}</b> para adquirir el paquete de {selectedPack.credits} crédito{selectedPack.credits > 1 ? 's' : ''}.
               </p>
               
-              <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'20px', margin:'20px auto', maxWidth:'400px', textAlign:'left'}}>
-                <p style={{margin:'0 0 8px', color:'var(--text-secondary)', fontSize:'13px'}}>Banco destino</p>
-                <p style={{margin:'0 0 16px', fontWeight:'700', fontSize:'18px', color:'white'}}>Banco Industrial</p>
-                
-                <p style={{margin:'0 0 8px', color:'var(--text-secondary)', fontSize:'13px'}}>No. de Cuenta (Monetaria)</p>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                  <p style={{margin:'0', fontWeight:'700', fontSize:'22px', color:'var(--accent-color)', letterSpacing:'2px'}}>123-456789-0</p>
-                  <button onClick={() => { navigator.clipboard.writeText('1234567890'); alert('Copiado'); }} style={{background:'none', border:'none', color:'white', cursor:'pointer', padding:'4px'}}>📋</button>
-                </div>
-                <p style={{margin:'8px 0 0', color:'var(--text-secondary)', fontSize:'13px'}}>A nombre de: <b>Tu Nombre o Empresa</b></p>
+              <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'24px', margin:'20px auto', maxWidth:'400px', textAlign:'center'}}>
+                <h4 style={{margin:'0 0 12px', color:'white', fontSize:'16px'}}>Pasos para recargar:</h4>
+                <ol style={{margin:'0', padding:'0 0 0 20px', textAlign:'left', color:'var(--text-secondary)', fontSize:'14px', lineHeight:'1.8'}}>
+                  <li>Comunícate con nuestro soporte vía WhatsApp.</li>
+                  <li>Solicita el número de cuenta.</li>
+                  <li>Deposita <b>GTQ {selectedPack.priceGtq}</b>.</li>
+                  <li>Recargaremos tu cuenta inmediatamente.</li>
+                </ol>
               </div>
 
               <button 
                 className="btn-primary"
                 style={{background:'#25D366', color:'white', fontSize:'16px', width:'100%', maxWidth:'400px', padding:'16px 32px'}}
                 onClick={() => {
-                  const whatsappMsg = `¡Hola! Acabo de hacer una transferencia de GTQ ${selectedPack.priceGtq} para comprar el paquete de ${selectedPack.credits} crédito(s) en SGIA.\n\nMi correo registrado es: *${user?.email}*\n\nAdjunto comprobante 👇`;
-                  const whatsappNumber = "50200000000"; // Reemplazar
+                  const whatsappMsg = `¡Hola! Me gustaría solicitar el número de cuenta porque quiero comprar el paquete de ${selectedPack.credits} crédito(s) por GTQ ${selectedPack.priceGtq} en SGIA.\n\nMi correo registrado es: *${user?.email}*`;
+                  const whatsappNumber = "50230236365"; 
                   window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
                 }}>
-                💬 Enviar Comprobante por WhatsApp
+                💬 Solicitar Cuenta por WhatsApp
               </button>
-              <p style={{fontSize:'12px', color:'var(--text-secondary)', marginTop:'16px'}}>Tus créditos se añadirán a tu cuenta en cuanto validemos el comprobante manualmente.</p>
+              <p style={{fontSize:'12px', color:'var(--text-secondary)', marginTop:'16px'}}>Tu saldo se actualizará en cuanto validemos el depósito.</p>
             </div>
           )}
         </div>

@@ -22,13 +22,13 @@ export default function Home() {
       {/* HERO */}
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
-        <p className={styles.badge}>✦ Potenciado por Inteligencia Artificial</p>
+        <p className={styles.badge}>✦ Diseño de anuncios asistidos por IA</p>
         <h1 className={styles.heroTitle}>
-          Tu anuncio profesional<br />
-          <span className={styles.accent}>en menos de 60 segundos</span>
+          Mejora la imagen de tu negocio<br />
+          <span className={styles.accent}>con contenido visual profesional</span>
         </h1>
         <p className={styles.heroSubtitle}>
-          Sube una foto de tu negocio, descríbenos lo que quieres y la IA genera el anuncio completo — imagen, texto y diseño — listo para publicar.
+          Obtén diseños publicitarios personalizados para tus redes sociales. Sube la foto de tus productos, indica tus requisitos y nuestro sistema preparará tu campaña publicitaria.
         </p>
         <div className={styles.heroCtas}>
           <Link href="/crear" className="btn-primary">
@@ -77,10 +77,10 @@ export default function Home() {
         <h2 className={styles.sectionTitle}>Así de simple</h2>
         <div className={styles.stepsGrid}>
           {[
-            { num: '01', icon: '📤', title: 'Sube tu foto', desc: 'Sube una imagen de tu negocio, producto o servicio. Funciona con cualquier foto.' },
-            { num: '02', icon: '✍️', title: 'Describe tu anuncio', desc: 'Cuéntanos qué quieres promocionar: "2x1 de pizza", "descuento 20%", "nuevo menú".' },
-            { num: '03', icon: '🤖', title: 'La IA trabaja', desc: 'En 15 segundos, la IA analiza tu foto y genera el anuncio completo con imagen y texto.' },
-            { num: '04', icon: '⬇️', title: 'Descarga en HD', desc: 'Paga $3 y descarga tu anuncio en alta resolución, sin marca de agua, listo para publicar.' },
+            { num: '01', icon: '📤', title: 'Proporciona tus imágenes', desc: 'Sube una imagen general de tu producto, servicio o local comercial para mantener el contexto de tu marca.' },
+            { num: '02', icon: '✍️', title: 'Indica los detalles', desc: 'Especifica qué información incluir en el arte: "Promoción 2x1", "Nuevo menú", u otros datos.' },
+            { num: '03', icon: '💻', title: 'Procesamiento de diseño', desc: 'Nuestro sistema compone y estructura el diseño visual y los textos publicitarios de tu anuncio de forma experta.' },
+            { num: '04', icon: '⬇️', title: 'Entrega en formato digital', desc: 'Descarga tu anuncio en alta resolución, sin marca de agua, listo para publicar (Tiempos de entrega máx. 24h).' },
           ].map((step) => (
             <div key={step.num} className={styles.stepCard}>
               <span className={styles.stepNum}>{step.num}</span>
@@ -90,6 +90,53 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ENTREGABLES */}
+      <section className={styles.deliverablesSection}>
+        <p className={styles.sectionTag}>Qué recibes</p>
+        <h2 className={styles.sectionTitle}>Entregables del Servicio</h2>
+        <div className={styles.deliverablesGrid}>
+          <div className={styles.delivCard}>
+            <span className={styles.delivIcon}>🖼️</span>
+            <h3>Imagen Final Alta Resolución</h3>
+            <p>Diseño finalizado en calidad máxima (PNG/JPG), optimizado para evitar compresión en redes.</p>
+          </div>
+          <div className={styles.delivCard}>
+            <span className={styles.delivIcon}>📐</span>
+            <h3>Formatos Oficiales</h3>
+            <p>Recibe tu contenido dimensionado según las normas oficiales de las plataformas seleccionadas.</p>
+          </div>
+          <div className={styles.delivCard}>
+            <span className={styles.delivIcon}>⏱️</span>
+            <h3>Tiempos de Entrega</h3>
+            <p>El diseño se procesa de forma digital para tu control y descarga, con una entrega garantizada de máximo 24 horas.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* EJEMPLOS REALES */}
+      <section className={styles.examplesSection}>
+        <p className={styles.sectionTag}>Ejemplos Reales</p>
+        <h2 className={styles.sectionTitle}>Calidad de Resultados</h2>
+        <div className={styles.examplesGrid}>
+          <div className={styles.exampleCard}>
+            <span className={styles.exampleBadge}>Antes</span>
+            <div className={styles.exampleImgPlaceholder}>
+              <span style={{fontSize: '32px', marginBottom: '8px', display: 'block'}}>📸</span>
+              Foto original del negocio sin procesar
+            </div>
+          </div>
+          <div className={styles.exampleArrow}>→</div>
+          <div className={styles.exampleCard}>
+            <span className={styles.exampleBadge}>Después</span>
+            <div className={styles.exampleImgPlaceholderDark}>
+               <span style={{fontSize: '32px', marginBottom: '8px', display: 'block'}}>✨</span>
+              Diseño publicitario profesional
+            </div>
+          </div>
+        </div>
+        <p className={styles.exampleDisclaimer}>*Ejemplos demostrativos de composiciones realizadas con nuestro flujo de trabajo.</p>
       </section>
 
       {/* TIPOS DE ANUNCIO */}
@@ -142,8 +189,8 @@ export default function Home() {
       {/* CTA FINAL */}
       <section className={styles.ctaSection}>
         <div className={styles.ctaBox}>
-          <h2>¿Listo para crear tu primer anuncio?</h2>
-          <p>Sin experiencia en diseño. Sin complicaciones. En menos de 1 minuto.</p>
+          <h2>¿Listo para mejorar la imagen de tu negocio?</h2>
+          <p>Obtén diseños publicitarios impactantes de forma ágil y profesional.</p>
           <Link href="/crear" className="btn-primary" style={{fontSize:'18px', padding:'16px 36px'}}>
             Crear anuncio gratis →
           </Link>
@@ -152,8 +199,21 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className={styles.footer}>
-        <span className={styles.logo}>SGIA</span>
-        <p>© 2025 SGIA — Sistema Generador de Anuncios con IA</p>
+        <div className={styles.footerContent}>
+          <div className={styles.footerCol}>
+            <span className={styles.logo}>SGIA</span>
+            <p className={styles.footerDesc}>Diseño de anuncios publicitarios personalizados asistidos con IA.</p>
+            <p className={styles.footerContact}>Atención al cliente: <strong>soporte@sgia-app.com</strong><br/>Respuesta habitual: 24 horas hábiles.</p>
+          </div>
+          <div className={styles.footerCol}>
+            <h3 className={styles.footerTitle}>Legal</h3>
+            <Link href="/terminos" className={styles.footerLink}>Términos y Condiciones</Link>
+            <Link href="/reembolso" className={styles.footerLink}>Política de Reembolso</Link>
+          </div>
+        </div>
+        <div className={styles.footerBottom}>
+          <p>© {new Date().getFullYear()} SGIA. Todos los derechos reservados.</p>
+        </div>
       </footer>
     </main>
   );

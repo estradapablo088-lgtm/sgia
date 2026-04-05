@@ -320,6 +320,124 @@
   margin: 0;
 }
 
+/* ─── DELIVERABLES ───────────────────────────────────── */
+.deliverablesSection {
+  padding: 80px 60px;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.deliverablesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.delivCard {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.delivIcon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.delivCard h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.delivCard p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ─── EXAMPLES ───────────────────────────────────── */
+.examplesSection {
+  padding: 80px 60px;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.examplesGrid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.exampleCard {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  width: 45%;
+  position: relative;
+}
+
+.exampleBadge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: var(--accent-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  z-index: 10;
+}
+
+.exampleImgPlaceholder {
+  height: 250px;
+  background: #1a1d24;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  border: 1px dashed var(--border-color);
+}
+
+.exampleImgPlaceholderDark {
+  height: 250px;
+  background: linear-gradient(135deg, rgba(123,97,255,0.1), rgba(123,97,255,0.02));
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  border: 1px solid rgba(123,97,255,0.3);
+  font-weight: 600;
+}
+
+.exampleArrow {
+  font-size: 32px;
+  color: var(--text-secondary);
+}
+
+.exampleDisclaimer {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* ─── FORMATS ──────────────────────────────────────── */
 .formatsSection {
   padding: 80px 60px;
@@ -466,13 +584,71 @@
 /* ─── FOOTER ────────────────────────────────────────── */
 .footer {
   border-top: 1px solid var(--border-color);
-  padding: 32px 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  padding: 60px 60px 30px;
 }
 
-.footer p {
+.footerContent {
+  display: flex;
+  justify-content: space-between;
+  max-width: 1000px;
+  margin: 0 auto;
+  gap: 40px;
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 400px;
+}
+
+.footerDesc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.footerContact {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.footerContact strong {
+  color: white;
+}
+
+.footerTitle {
+  font-family: 'Outfit', sans-serif;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.footerLink {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerLink:hover {
+  color: var(--accent-color);
+}
+
+.footerBottom {
+  max-width: 1000px;
+  margin: 40px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.footerBottom p {
   color: var(--text-secondary);
   font-size: 13px;
   margin: 0;
@@ -488,6 +664,12 @@
   .previewSection { padding: 20px 24px 60px; }
   .previewContent { grid-template-columns: 1fr; }
   .previewLeft { display: none; }
-  .stepsSection, .formatsSection, .pricingSection { padding: 60px 24px; }
+  .deliverablesGrid { grid-template-columns: 1fr; }
+  .examplesGrid { flex-direction: column; }
+  .exampleCard { width: 100%; }
+  .exampleArrow { transform: rotate(90deg); margin: 8px 0; }
+  .stepsSection, .formatsSection, .pricingSection, .deliverablesSection, .examplesSection { padding: 60px 24px; }
+  .footerContent { flex-direction: column; }
+  .footerCol { max-width: 100%; text-align: center; align-items: center; }
   .footer { padding: 24px; flex-direction: column; gap: 8px; text-align: center; }
 }

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import PayPalCheckout from '@/components/PayPalCheckout';
+import AdCanvas from '@/components/AdCanvas';
 import styles from './crear.module.css';
 
 const STEPS = ['Sube tus fotos', 'Tu negocio', 'Tu anuncio', 'Generando...'];
@@ -34,6 +34,9 @@ export default function CrearPage() {
   const [loadingStepIdx, setLoadingStepIdx] = useState(0);
   const [paid, setPaid] = useState(false);
   const [payError, setPayError] = useState('');
+  const [renderedImages, setRenderedImages] = useState<Record<number, string>>({});
+  const [credits, setCredits] = useState<number>(0);
+  const [actionLoading, setActionLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Check auth
@@ -45,6 +48,25 @@ export default function CrearPage() {
         return;
       }
       setUser(session.user);
+      
+      // Load credits
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('creditos')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (data) {
+          setCredits(data.creditos || 0);
+        } else if (error && error.code === 'PGRST116') {
+          // If no profile exists, create one with 0 credits
+          await supabase.from('profiles').insert({ id: session.user.id, creditos: 0 });
+          setCredits(0);
+        }
+      } catch (e) {
+        console.error("Error loading credits", e);
+      }
     };
     checkUser();
   }, [router]);
@@ -129,10 +151,10 @@ export default function CrearPage() {
     }
   };
 
-  const handleDownloadHD = (imageUrl: string) => {
+  const handleDownloadHD = (dataUrl: string, idx: number) => {
     const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `sgia-anuncio-${form.negocio || 'ad'}.png`;
+    link.href = dataUrl;
+    link.download = `sgia-premium-${form.negocio || 'ad'}-var${idx+1}.png`;
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -367,9 +389,19 @@ export default function CrearPage() {
               <div className={styles.adCards}>
                 {resultado.variaciones?.map((v: any, i: number) => (
                   <div key={i} className={styles.adCard}>
-                    <div className={styles.adImageWrap}>
+                    <div className={styles.adImageWrap} style={{ width: '100%', marginBottom: '20px' }}>
                       {resultado.imagenUrl ? (
-                        <img src={resultado.imagenUrl} alt="Anuncio generado" className={styles.adImage} />
+                        <div className={!paid && renderedImages[i] ? styles.canvasBlurred : ''}>
+                          <AdCanvas
+                            imageUrl={resultado.imagenUrl}
+                            headline={v.headline}
+                            copy={v.copy}
+                            cta={v.cta}
+                            tono={i === 0 ? form.tono : ['Divertido', 'Elegante', 'Moderno'].filter(t => t !== form.tono && (t !== 'Profesional' || form.tono !== 'Elegante') && (t !== 'Urgente' || form.tono !== 'Divertido'))[(i - 1) % 2]}
+                            formato={form.formato}
+                            onRendered={(dataUrl) => setRenderedImages(prev => ({...prev, [i]: dataUrl}))}
+                          />
+                        </div>
                       ) : (
                         <div className={styles.adImagePlaceholder}>
                           {imagePreviews[0] && <img src={imagePreviews[0]} alt="Base" style={{width:'100%', height:'100%', objectFit:'cover', opacity:0.4}} />}
@@ -378,14 +410,15 @@ export default function CrearPage() {
                           </div>
                         </div>
                       )}
-                      {!paid && (
+                      {!paid && renderedImages[i] && (
                         <div className={styles.adWatermark}>
-                          <span>SGIA • SGIA • SGIA • SGIA • SGIA</span>
-                          <span>SGIA • SGIA • SGIA • SGIA • SGIA</span>
+                          <span>PREVIEW</span>
+                          <span>PREVIEW</span>
+                          <span>PREVIEW</span>
                         </div>
                       )}
                     </div>
-                    <div className={styles.adInfo}>
+                    <div className={styles.adInfo} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                       <span className={styles.adBadge}>Variación {i + 1}</span>
                       <h3 className={styles.adHeadline}>{v.headline}</h3>
                       <p className={styles.adCopy}>{v.copy}</p>
@@ -407,42 +440,87 @@ export default function CrearPage() {
 
               {!paid ? (
                 <div className={styles.unlockSection}>
-                  <div className={styles.unlockBox}>
-                    <h3>🔓 Desbloquear anuncio en HD</h3>
-                    <p>Descarga en alta resolución, sin marca de agua, listo para publicar.</p>
-                    <div className={styles.unlockPrice}>$3 <span>USD</span></div>
-                    {payError && <p style={{color:'#ff6b6b', fontSize:'14px', marginBottom:'16px'}}>❌ {payError}</p>}
-                    <PayPalCheckout
-                      amount="3.00"
-                      anuncioId={resultado.anuncioId}
-                      userId={user?.id}
-                      onSuccess={() => {
-                        setPaid(true);
-                        setPayError('');
-                      }}
-                      onError={(err: any) => {
-                        setPayError(err?.message || 'Error al procesar el pago. Intenta de nuevo.');
-                      }}
-                    />
-                  </div>
+                  {credits > 0 ? (
+                    <div className={styles.unlockBox} style={{borderColor:'var(--accent-color)'}}>
+                      <h3>🔓 Desbloquear anuncio en HD</h3>
+                      <p>Tienes <strong>{credits} créditos</strong> disponibles en tu cuenta.</p>
+                      
+                      <button 
+                        className="btn-primary" 
+                        disabled={actionLoading}
+                        style={{marginTop:'16px', padding:'16px 32px', fontSize:'18px', width:'100%', maxWidth:'400px'}}
+                        onClick={async () => {
+                          setActionLoading(true);
+                          setPayError('');
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ creditos: credits - 1 })
+                            .eq('id', user.id);
+                            
+                          if (!error) {
+                            setCredits(credits - 1);
+                            setPaid(true);
+                          } else {
+                            setPayError('Error al procesar el crédito. Intenta de nuevo.');
+                          }
+                          setActionLoading(false);
+                        }}>
+                        {actionLoading ? 'Desbloqueando...' : 'Desbloquear por 1 Crédito'}
+                      </button>
+                      {payError && <p style={{color:'#ff6b6b', marginTop:'12px'}}>❌ {payError}</p>}
+                    </div>
+                  ) : (
+                    <div className={styles.unlockBox}>
+                      <h3 style={{color:'#d4af37'}}>⚠️ Sin créditos suficientes</h3>
+                      <p>Para descargar estas piezas en alta calidad necesitas saldo. Realiza una transferencia de <b>GTQ 25.00 (Q25)</b> para recargar 1 crédito.</p>
+                      
+                      <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'20px', margin:'20px auto', maxWidth:'400px', textAlign:'left'}}>
+                        <p style={{margin:'0 0 8px', color:'var(--text-secondary)', fontSize:'13px'}}>Banco destino</p>
+                        <p style={{margin:'0 0 16px', fontWeight:'700', fontSize:'18px', color:'white'}}>Banco Industrial</p>
+                        
+                        <p style={{margin:'0 0 8px', color:'var(--text-secondary)', fontSize:'13px'}}>No. de Cuenta (Monetaria)</p>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                          <p style={{margin:'0', fontWeight:'700', fontSize:'22px', color:'var(--accent-color)', letterSpacing:'2px'}}>123-456789-0</p>
+                          <button onClick={() => { navigator.clipboard.writeText('1234567890'); alert('Copiado'); }} style={{background:'none', border:'none', color:'white', cursor:'pointer', padding:'4px'}}>📋</button>
+                        </div>
+                        <p style={{margin:'8px 0 0', color:'var(--text-secondary)', fontSize:'13px'}}>A nombre de: <b>Tu Nombre o Empresa</b></p>
+                      </div>
+
+                      <button 
+                        className={styles.payBtn} 
+                        style={{background:'#25D366', color:'white', fontSize:'16px', width:'100%', maxWidth:'400px'}}
+                        onClick={() => {
+                          const whatsappMsg = `¡Hola! Acabo de hacer una transferencia para comprar 1 crédito en SGIA.\n\nMi correo registrado es: *${user?.email}*\n\nAdjunto comprobante 👇`;
+                          const whatsappNumber = "50200000000"; // Reemplazar
+                          window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
+                        }}>
+                        💬 Enviar Comprobante por WhatsApp
+                      </button>
+                      <p className={styles.unlockNote}>Tus créditos se añadirán a tu cuenta en minutos.</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className={styles.unlockSection}>
                   <div className={styles.unlockBox} style={{borderColor:'rgba(40,200,100,0.4)', background:'rgba(40,200,100,0.06)'}}>
-                    <h3>✅ ¡Pago exitoso!</h3>
-                    <p>Tu anuncio está desbloqueado. Descárgalo ahora.</p>
-                    {resultado.imagenUrl && (
-                      <button className={styles.payBtn} style={{background:'#28c840', marginTop:'16px'}}
-                        onClick={() => handleDownloadHD(resultado.imagenUrl)}>
-                        ⬇️ Descargar imagen HD
-                      </button>
-                    )}
+                    <h3>✅ ¡Desbloqueado!</h3>
+                    <p>Tus anuncios están listos HD.</p>
+                    <div style={{display:'flex', gap:'12px', justifyContent:'center', marginTop:'16px', flexWrap:'wrap'}}>
+                      {resultado.variaciones?.map((v: any, i: number) => (
+                        renderedImages[i] && (
+                          <button key={i} className={styles.payBtn} style={{background:'#28c840'}}
+                            onClick={() => handleDownloadHD(renderedImages[i], i)}>
+                            ⬇️ Descargar Var {i+1}
+                          </button>
+                        )
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
-              <button className="btn-outline" style={{marginTop:'20px'}}
-                onClick={() => { setStep(0); setResultado(null); setImages([]); setImagePreviews([]); setPaid(false); setPayError(''); }}>
+              <button className="btn-outline" style={{marginTop:'30px'}}
+                onClick={() => { setStep(0); setResultado(null); setImages([]); setImagePreviews([]); setPaid(false); setPayError(''); setRenderedImages({}); }}>
                 Crear otro anuncio
               </button>
             </div>

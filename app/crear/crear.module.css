@@ -527,20 +527,30 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
   pointer-events: none;
-  rotate: -20deg;
-  scale: 1.5;
+  background: rgba(0, 0, 0, 0.3);
+  gap: 30px;
+  overflow: hidden;
 }
 
 .adWatermark span {
-  color: rgba(255,255,255,0.12);
-  font-size: 10px;
-  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 80px;
+  letter-spacing: 12px;
   white-space: nowrap;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
+  font-family: 'Anton', sans-serif;
+  text-transform: uppercase;
+  transform: rotate(-25deg);
+  text-shadow: 0 4px 16px rgba(0,0,0,0.8);
+  opacity: 0.9;
+}
+
+.canvasBlurred {
+  opacity: 1;
+  transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .adInfo {

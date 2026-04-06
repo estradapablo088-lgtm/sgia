@@ -268,8 +268,18 @@ export default function MisAnunciosPage() {
             <h2 className={styles.modalTitle}>{selectedAd.negocio}</h2>
 
             {selectedAd.imagen_url && (
-              <div className={styles.modalImage}>
-                <img src={selectedAd.imagen_url} alt={selectedAd.negocio} />
+              <div className={styles.modalImage} style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px' }}>
+                <img 
+                  src={selectedAd.imagen_url} 
+                  alt={selectedAd.negocio} 
+                  style={!selectedAd.pagado ? { filter: 'blur(5px) grayscale(30%)', pointerEvents: 'none', userSelect: 'none' } : {}}
+                />
+                {!selectedAd.pagado && (
+                  <div className={styles.adWatermark} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <span style={{ fontSize: '3rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', transform: 'rotate(-30deg)', whiteSpace: 'nowrap', textShadow: '2px 2px 10px rgba(0,0,0,0.8)' }}>PREVIEW • PREVIEW</span>
+                    <span style={{ fontSize: '3rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', transform: 'rotate(-30deg)', whiteSpace: 'nowrap', textShadow: '2px 2px 10px rgba(0,0,0,0.8)', marginTop: '20px' }}>PREVIEW • PREVIEW</span>
+                  </div>
+                )}
               </div>
             )}
 

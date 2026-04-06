@@ -26,10 +26,10 @@ export default function DashboardPage() {
       // Get profile (credits)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('credits')
+        .select('creditos')
         .eq('id', session.user.id)
         .single();
-      if (profile) setCredits(profile.credits);
+      if (profile) setCredits(profile.creditos || 0);
 
       // Get anuncios
       const { data: ads } = await supabase
@@ -90,8 +90,8 @@ export default function DashboardPage() {
 
           <Link href="/comprar" className={styles.actionCard}>
             <span className={styles.actionIcon}>📦</span>
-            <h3>Comprar créditos</h3>
-            <p>Desbloquea anuncios en HD. Packs desde $3 USD.</p>
+            <h3>Recargar créditos</h3>
+            <p>Desbloquea anuncios en HD. Packs desde Q25.</p>
             <span className={styles.actionArrow}>→</span>
           </Link>
 

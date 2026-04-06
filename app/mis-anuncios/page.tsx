@@ -38,10 +38,10 @@ export default function MisAnunciosPage() {
       // Load credits
       const { data: profile } = await supabase
         .from('profiles')
-        .select('creditos')
+        .select('credits')
         .eq('id', session.user.id)
         .single();
-      if (profile) setCredits(profile.creditos || 0);
+      if (profile) setCredits(profile.credits || 0);
 
       setLoading(false);
     };
@@ -60,7 +60,7 @@ export default function MisAnunciosPage() {
     try {
       const { error: creditError } = await supabase
         .from('profiles')
-        .update({ creditos: credits - 1 })
+        .update({ credits: credits - 1 })
         .eq('id', user.id);
 
       if (creditError) throw creditError;

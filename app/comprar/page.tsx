@@ -31,10 +31,10 @@ export default function ComprarPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('creditos')
+        .select('credits')
         .eq('id', session.user.id)
         .single();
-      if (profile) setCredits(profile.creditos || 0);
+      if (profile) setCredits(profile.credits || 0);
       setLoading(false);
     };
     getUser();

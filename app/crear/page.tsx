@@ -43,14 +43,14 @@ export default function CrearPage() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('creditos')
+        .select('credits')
         .eq('id', userId)
         .single();
         
       if (data) {
-        setCredits(data.creditos || 0);
+        setCredits(data.credits || 0);
       } else if (error && error.code === 'PGRST116') {
-        await supabase.from('profiles').insert({ id: userId, creditos: 0 });
+        await supabase.from('profiles').insert({ id: userId, credits: 0 });
         setCredits(0);
       }
     } catch (e) {
@@ -458,7 +458,7 @@ export default function CrearPage() {
                             setPayError('');
                             const { error } = await supabase
                               .from('profiles')
-                              .update({ creditos: credits - 1 })
+                              .update({ credits: credits - 1 })
                               .eq('id', user.id);
                               
                             if (!error) {

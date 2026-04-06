@@ -39,6 +39,25 @@ export default function CrearPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const loadCredits = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('creditos')
+        .eq('id', userId)
+        .single();
+        
+      if (data) {
+        setCredits(data.creditos || 0);
+      } else if (error && error.code === 'PGRST116') {
+        await supabase.from('profiles').insert({ id: userId, creditos: 0 });
+        setCredits(0);
+      }
+    } catch (e) {
+      console.error("Error loading credits", e);
+    }
+  };
+
   // Check auth
   useEffect(() => {
     const checkUser = async () => {
@@ -49,24 +68,8 @@ export default function CrearPage() {
       }
       setUser(session.user);
       
-      // Load credits
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('creditos')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (data) {
-          setCredits(data.creditos || 0);
-        } else if (error && error.code === 'PGRST116') {
-          // If no profile exists, create one with 0 credits
-          await supabase.from('profiles').insert({ id: session.user.id, creditos: 0 });
-          setCredits(0);
-        }
-      } catch (e) {
-        console.error("Error loading credits", e);
-      }
+      // Load credits initially
+      await loadCredits(session.user.id);
     };
     checkUser();
   }, [router]);
@@ -445,28 +448,40 @@ export default function CrearPage() {
                       <h3>🔓 Desbloquear anuncio en HD</h3>
                       <p>Tienes <strong>{credits} créditos</strong> disponibles en tu cuenta.</p>
                       
-                      <button 
-                        className="btn-primary" 
-                        disabled={actionLoading}
-                        style={{marginTop:'16px', padding:'16px 32px', fontSize:'18px', width:'100%', maxWidth:'400px'}}
-                        onClick={async () => {
-                          setActionLoading(true);
-                          setPayError('');
-                          const { error } = await supabase
-                            .from('profiles')
-                            .update({ creditos: credits - 1 })
-                            .eq('id', user.id);
-                            
-                          if (!error) {
-                            setCredits(credits - 1);
-                            setPaid(true);
-                          } else {
-                            setPayError('Error al procesar el crédito. Intenta de nuevo.');
-                          }
-                          setActionLoading(false);
-                        }}>
-                        {actionLoading ? 'Desbloqueando...' : 'Desbloquear por 1 Crédito'}
-                      </button>
+                      <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                        <button 
+                          className="btn-primary" 
+                          disabled={actionLoading}
+                          style={{marginTop:'16px', padding:'16px 32px', fontSize:'18px', flex:'1'}}
+                          onClick={async () => {
+                            setActionLoading(true);
+                            setPayError('');
+                            const { error } = await supabase
+                              .from('profiles')
+                              .update({ creditos: credits - 1 })
+                              .eq('id', user.id);
+                              
+                            if (!error) {
+                              setCredits(credits - 1);
+                              setPaid(true);
+                            } else {
+                              setPayError('Error al procesar el crédito. Intenta de nuevo.');
+                            }
+                            setActionLoading(false);
+                          }}>
+                          {actionLoading ? 'Desbloqueando...' : 'Desbloquear por 1 Crédito'}
+                        </button>
+                        
+                        <button 
+                          className="btn-outline"
+                          title="Actualizar mi saldo de créditos si acabo de recargar"
+                          style={{marginTop:'16px', padding:'16px', fontSize:'18px'}}
+                          onClick={async () => {
+                             if(user) await loadCredits(user.id);
+                          }}>
+                          🔄
+                        </button>
+                      </div>
                       {payError && <p style={{color:'#ff6b6b', marginTop:'12px'}}>❌ {payError}</p>}
                     </div>
                   ) : (
@@ -484,17 +499,30 @@ export default function CrearPage() {
                         </ol>
                       </div>
 
-                      <button 
-                        className={styles.payBtn} 
-                        style={{background:'#25D366', color:'white', fontSize:'16px', width:'100%', maxWidth:'400px'}}
-                        onClick={() => {
-                          const whatsappMsg = `¡Hola! Me gustaría solicitar el número de cuenta para recargar saldo (créditos) en mi cuenta de SGIA.\n\nMi correo registrado es: *${user?.email}*`;
-                          const whatsappNumber = "50230236365"; 
-                          window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
-                        }}>
-                        💬 Solicitar Cuenta por WhatsApp
-                      </button>
-                      <p className={styles.unlockNote}>Te atenderemos en breve.</p>
+                      <div style={{display:'flex', alignItems:'center', gap:'8px', marginTop:'16px'}}>
+                        <button 
+                          className={styles.payBtn} 
+                          style={{background:'#25D366', color:'white', fontSize:'16px', flex:'1'}}
+                          onClick={() => {
+                            const whatsappMsg = `¡Hola! Me gustaría solicitar el número de cuenta para recargar saldo (créditos) en mi cuenta de SGIA.\n\nMi correo registrado es: *${user?.email}*`;
+                            const whatsappNumber = "50230236365"; 
+                            window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
+                          }}>
+                          💬 Solicitar Cuenta por WhatsApp
+                        </button>
+                        <button 
+                          className="btn-outline"
+                          title="Refrescar Saldo"
+                          style={{fontSize:'16px', padding:'14px'}}
+                          onClick={async () => {
+                             setActionLoading(true);
+                             if(user) await loadCredits(user.id);
+                             setActionLoading(false);
+                          }}>
+                          🔄
+                        </button>
+                      </div>
+                      <p className={styles.unlockNote}>Te atenderemos en breve. Si ya pagaste y te dimos los créditos, aprieta 🔄.</p>
                     </div>
                   )}
                 </div>

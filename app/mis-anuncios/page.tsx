@@ -15,6 +15,8 @@ export default function MisAnunciosPage() {
   const [anuncios, setAnuncios] = useState<any[]>([]);
   const [filter, setFilter] = useState<FilterType>('todos');
   const [selectedAd, setSelectedAd] = useState<any>(null);
+  const [credits, setCredits] = useState<number>(0);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -32,10 +34,57 @@ export default function MisAnunciosPage() {
         .order('created_at', { ascending: false });
 
       if (ads) setAnuncios(ads);
+      
+      // Load credits
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('creditos')
+        .eq('id', session.user.id)
+        .single();
+      if (profile) setCredits(profile.creditos || 0);
+
       setLoading(false);
     };
     getUser();
   }, [router]);
+
+  const handleUnlockAd = async (adId: string) => {
+    if (credits <= 0) {
+      router.push('/comprar');
+      return;
+    }
+
+    if (actionLoading || !user) return;
+    setActionLoading(true);
+
+    try {
+      const { error: creditError } = await supabase
+        .from('profiles')
+        .update({ creditos: credits - 1 })
+        .eq('id', user.id);
+
+      if (creditError) throw creditError;
+
+      const { error: adError } = await supabase
+        .from('anuncios')
+        .update({ pagado: true })
+        .eq('id', adId);
+
+      if (adError) throw adError;
+
+      setCredits(credits - 1);
+      setAnuncios(anuncios.map(ad => ad.id === adId ? { ...ad, pagado: true } : ad));
+      if (selectedAd?.id === adId) {
+        setSelectedAd({ ...selectedAd, pagado: true });
+      }
+      alert('¡Anuncio desbloqueado exitosamente!');
+    } catch (e) {
+      console.error(e);
+      alert('Hubo un error al usar tus créditos.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const filtered = anuncios.filter((ad) => {
     if (filter === 'pagados') return ad.pagado;
@@ -74,6 +123,15 @@ export default function MisAnunciosPage() {
         <p className={styles.sectionTag}>Historial</p>
         <h1 className={styles.title}>Mis anuncios</h1>
         <p className={styles.subtitle}>Todos los anuncios que has generado con SGIA.</p>
+        
+        {/* Current credits banner */}
+        <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px', border:'1px solid rgba(255,255,255,0.1)'}}>
+           <div>
+             <span style={{color:'var(--text-secondary)', fontSize:'14px'}}>Saldo disponible:</span>
+             <strong style={{color:'var(--accent-color)', marginLeft:'8px', fontSize:'16px'}}>{credits} Crédito{credits !== 1 ? 's' : ''}</strong>
+           </div>
+           <Link href="/comprar" className="btn-outline" style={{padding:'8px 16px', fontSize:'13px'}}>Recargar</Link>
+        </div>
 
         {/* Stats */}
         <div className={styles.statsBar}>
@@ -182,14 +240,17 @@ export default function MisAnunciosPage() {
                         ⬇️ Descargar
                       </button>
                     ) : (
-                      <Link
-                        href="/comprar"
+                      <button
                         className={`${styles.adBtn} ${styles.adBtnPrimary}`}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ textDecoration: 'none', textAlign: 'center' }}
+                        disabled={actionLoading}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnlockAd(ad.id);
+                        }}
+                        style={{ textAlign: 'center' }}
                       >
-                        🔓 Desbloquear
-                      </Link>
+                        {actionLoading ? '⏳' : `🔓 Desbloquear`}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -273,9 +334,14 @@ export default function MisAnunciosPage() {
                 </button>
               )}
               {!selectedAd.pagado && (
-                <Link href="/comprar" className="btn-primary" style={{ padding: '12px 24px', textDecoration: 'none' }}>
-                  🔓 Desbloquear — $3
-                </Link>
+                <button 
+                  className="btn-primary" 
+                  style={{ padding: '12px 24px' }}
+                  disabled={actionLoading}
+                  onClick={() => handleUnlockAd(selectedAd.id)}
+                >
+                  {actionLoading ? '⏳...' : `🔓 Usar 1 Crédito (${credits} disponibles)`}
+                </button>
               )}
               <button className="btn-outline" style={{ padding: '12px 24px' }} onClick={() => setSelectedAd(null)}>
                 Cerrar

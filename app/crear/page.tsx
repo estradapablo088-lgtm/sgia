@@ -10,7 +10,7 @@ import styles from './crear.module.css';
 const STEPS = ['Sube tus fotos', 'Tu negocio', 'Tu anuncio', 'Generando...'];
 const MAX_IMAGES = 5;
 
-const TONOS = ['Profesional', 'Divertido', 'Urgente', 'Elegante', 'Moderno'];
+const TONOS = ['Minimalista', 'Profesional', 'Divertido', 'Urgente', 'Elegante', 'Moderno'];
 const FORMATOS = [
   { id: 'instagram-post', label: 'Post Instagram', size: '1080×1080', icon: '▪️' },
   { id: 'historia', label: 'Historia / Reel', size: '1080×1920', icon: '📱' },
@@ -31,7 +31,7 @@ export default function CrearPage() {
   const [resultado, setResultado] = useState<any>(null);
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
-  const [loadingStepIdx, setLoadingStepIdx] = useState(0);
+  const [loadingStepIdx, setLoadingStepIdx] = useState(-1);
   const [paid, setPaid] = useState(false);
   const [payError, setPayError] = useState('');
   const [renderedImages, setRenderedImages] = useState<Record<number, string>>({});
@@ -58,7 +58,6 @@ export default function CrearPage() {
     }
   };
 
-  // Check auth
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -67,8 +66,6 @@ export default function CrearPage() {
         return;
       }
       setUser(session.user);
-      
-      // Load credits initially
       await loadCredits(session.user.id);
     };
     checkUser();
@@ -79,7 +76,6 @@ export default function CrearPage() {
     const combined = [...images, ...newFiles].slice(0, MAX_IMAGES);
     setImages(combined);
 
-    // Generate previews for new files
     const existingPreviews = [...imagePreviews];
     newFiles.forEach((file) => {
       if (existingPreviews.length >= MAX_IMAGES) return;
@@ -108,10 +104,31 @@ export default function CrearPage() {
     setStep(3);
     setLoading(true);
     setError('');
-    setLoadingStepIdx(0);
 
     try {
-      // Animate loading steps
+      // 1. Fase de Recorte con IA local (Solo para estilo Minimalista)
+      if (form.tono === 'Minimalista' && imagePreviews.length > 0) {
+        setLoadingStepIdx(-1);
+        try {
+          // @ts-ignore
+          const imglyModule = await import('@imgly/background-removal');
+          const imglyRemoveBackground = imglyModule.default || imglyModule.removeBackground;
+          
+          // @ts-ignore
+          const blob = await imglyRemoveBackground(imagePreviews[0]);
+          const objUrl = URL.createObjectURL(blob);
+          
+          setImagePreviews(prev => {
+            const newArr = [...prev];
+            newArr[0] = objUrl;
+            return newArr;
+          });
+        } catch (bgError) {
+          console.error("Error eliminando el fondo", bgError);
+        }
+      }
+
+      setLoadingStepIdx(0);
       const stepTimer1 = setTimeout(() => setLoadingStepIdx(1), 3000);
       const stepTimer2 = setTimeout(() => setLoadingStepIdx(2), 7000);
 
@@ -129,7 +146,6 @@ export default function CrearPage() {
 
       if (!res.ok) throw new Error(data.error || 'Error al generar');
 
-      // Save to Supabase
       if (user) {
         const { error: dbError } = await supabase.from('anuncios').insert({
           user_id: user.id,
@@ -166,22 +182,26 @@ export default function CrearPage() {
 
   const progress = ((step) / (STEPS.length - 1)) * 100;
 
-  const loadingSteps = [
-    { label: `Analizando ${images.length} imagen${images.length !== 1 ? 'es' : ''} con IA`, done: loadingStepIdx > 0 },
-    { label: 'Generando copy publicitario...', done: loadingStepIdx > 1 },
-    { label: 'Creando imagen profesional...', done: false },
-  ];
+  const loadingSteps = form.tono === 'Minimalista' 
+    ? [
+        { label: 'Recortando fondo del producto con IA...', done: loadingStepIdx > -1 },
+        { label: `Analizando negocio para la mejor estrategia`, done: loadingStepIdx > 0 },
+        { label: 'Generando diseño Minimalista Premium...', done: false }
+      ]
+    : [
+        { label: `Analizando ${images.length} imagen${images.length !== 1 ? 'es' : ''} con IA`, done: loadingStepIdx > 0 },
+        { label: 'Generando copy publicitario...', done: loadingStepIdx > 1 },
+        { label: 'Creando render profesional final...', done: false }
+      ];
 
   return (
     <div className={styles.page}>
-      {/* Header */}
       <header className={styles.header}>
         <Link href="/dashboard" className={styles.back}>← Volver</Link>
         <span className={styles.logo}>SGIA</span>
         <span />
       </header>
 
-      {/* Progress bar */}
       {step < 3 && (
         <div className={styles.progressWrap}>
           <div className={styles.steps}>
@@ -198,20 +218,18 @@ export default function CrearPage() {
         </div>
       )}
 
-      {/* PASO 0 — Sube fotos */}
       {step === 0 && (
         <div className={styles.stepContent}>
           <h1 className={styles.stepTitle}>Sube las fotos de tu negocio</h1>
-          <p className={styles.stepDesc}>Sube hasta {MAX_IMAGES} fotos. La IA analizará todas para generar el anuncio perfecto.</p>
+          <p className={styles.stepDesc}>Sube el producto y opcionalmente tu logo. Nuestra IA puede recortar automáticamente el fondo de cualquier foto.</p>
           
-          {/* Preview grid */}
           {imagePreviews.length > 0 && (
             <div className={styles.imageGrid}>
               {imagePreviews.map((preview, i) => (
                 <div key={i} className={styles.imageThumb}>
                   <img src={preview} alt={`Foto ${i + 1}`} />
                   <button className={styles.removeImg} onClick={() => removeImage(i)}>✕</button>
-                  <span className={styles.imgNum}>{i + 1}</span>
+                  <span className={styles.imgNum}>{i === 0 ? 'Producto' : i === 1 ? 'Logo / Extra' : i + 1}</span>
                 </div>
               ))}
               {imagePreviews.length < MAX_IMAGES && (
@@ -226,7 +244,6 @@ export default function CrearPage() {
             </div>
           )}
 
-          {/* Dropzone (only show when no images yet) */}
           {imagePreviews.length === 0 && (
             <div
               className={styles.dropzone}
@@ -235,8 +252,8 @@ export default function CrearPage() {
               onClick={() => fileRef.current?.click()}
             >
               <span className={styles.dropIcon}>📁</span>
-              <p>Arrastra tus imágenes aquí o <strong>haz clic para seleccionar</strong></p>
-              <span className={styles.dropHint}>JPG, PNG, WEBP — máx 10MB · hasta {MAX_IMAGES} fotos</span>
+              <p>Arrastra tu foto del producto (luego tu logo)</p>
+              <span className={styles.dropHint}>JPG, PNG, WEBP — máx 10MB</span>
             </div>
           )}
 
@@ -256,7 +273,6 @@ export default function CrearPage() {
         </div>
       )}
 
-      {/* PASO 1 — Info del negocio */}
       {step === 1 && (
         <div className={styles.stepContent}>
           <h1 className={styles.stepTitle}>Cuéntanos sobre tu negocio</h1>
@@ -296,7 +312,6 @@ export default function CrearPage() {
         </div>
       )}
 
-      {/* PASO 2 — Info del anuncio */}
       {step === 2 && (
         <div className={styles.stepContent}>
           <h1 className={styles.stepTitle}>Describe tu anuncio</h1>
@@ -315,19 +330,19 @@ export default function CrearPage() {
                 onChange={(e) => setForm({...form, oferta: e.target.value})} />
             </div>
             <div className={styles.field}>
-              <label>Tono del anuncio</label>
+              <label>Estilo visual del anuncio</label>
               <div className={styles.chips}>
                 {TONOS.map((t) => (
                   <button key={t}
                     className={`${styles.chip} ${form.tono === t ? styles.chipActive : ''}`}
                     onClick={() => setForm({...form, tono: t})}>
-                    {t}
+                    {t === 'Minimalista' ? '✨ Minimalista (Premium)' : t}
                   </button>
                 ))}
               </div>
             </div>
             <div className={styles.field}>
-              <label>Formato del anuncio</label>
+              <label>Formato de resolución</label>
               <div className={styles.formatGrid}>
                 {FORMATOS.map((f) => (
                   <button key={f.id}
@@ -341,10 +356,10 @@ export default function CrearPage() {
               </div>
             </div>
             <div className={styles.field}>
-              <label>Comentarios extras para la IA (opcional)</label>
+              <label>Comentarios extras (opcional)</label>
               <textarea
                 className={styles.textarea}
-                placeholder='Ej: "Usa colores rojos", "Menciona que abrimos domingos", "El anuncio es para Instagram Stories"'
+                placeholder='Ej: "Enfócate en vender para el día de la madre... "'
                 value={form.extras}
                 onChange={(e) => setForm({...form, extras: e.target.value})}
                 rows={3}
@@ -362,20 +377,25 @@ export default function CrearPage() {
         </div>
       )}
 
-      {/* PASO 3 — Generando / Resultado */}
       {step === 3 && (
         <div className={styles.stepContent} style={{textAlign:'center'}}>
           {loading ? (
             <div className={styles.loadingState}>
               <div className={styles.spinner} />
-              <h2 className={styles.stepTitle}>La IA está generando tu anuncio...</h2>
-              <p className={styles.stepDesc}>Analizando tu imagen y creando el copy perfecto. Esto tarda ~15 segundos.</p>
+              <h2 className={styles.stepTitle}>La IA está procesando tu archivo...</h2>
+              <p className={styles.stepDesc}>Por favor, no cierres esta ventana. Tomará de 10 a 20 segundos dependiendo del recorte de fondo.</p>
               <div className={styles.loadingSteps}>
-                {loadingSteps.map((ls, i) => (
-                  <span key={i} className={styles.loadingStep}>
-                    {ls.done ? '✅' : i <= loadingStepIdx ? '⏳' : '○'} {ls.label}
-                  </span>
-                ))}
+                {loadingSteps.map((ls, i) => {
+                  let statusIcon = '○';
+                  if (ls.done) statusIcon = '✅';
+                  else if ((form.tono === 'Minimalista' ? i - 1 : i) <= loadingStepIdx) statusIcon = '⏳';
+                  
+                  return (
+                    <span key={i} className={`${styles.loadingStep} ${ls.done ? styles.loadingDone : ''}`}>
+                      {statusIcon} {ls.label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           ) : error ? (
@@ -386,7 +406,7 @@ export default function CrearPage() {
           ) : resultado ? (
             <div className={styles.resultado}>
               <p className={styles.sectionTag} style={{textAlign:'center', marginBottom:'8px'}}>¡Listo!</p>
-              <h2 className={styles.stepTitle}>{paid ? '✅ ¡Anuncio desbloqueado!' : 'Tu anuncio está generado'}</h2>
+              <h2 className={styles.stepTitle}>{paid ? '✅ ¡Anuncio desbloqueado!' : 'Tu anuncio Premium está listo'}</h2>
               <p className={styles.stepDesc}>{paid ? 'Tu anuncio está listo para descargar en alta calidad.' : 'Desbloquea para descargar en alta calidad sin marca de agua.'}</p>
 
               <div className={styles.adCards}>
@@ -400,29 +420,27 @@ export default function CrearPage() {
                             headline={v.headline}
                             copy={v.copy}
                             cta={v.cta}
-                            tono={i === 0 ? form.tono : ['Divertido', 'Elegante', 'Moderno'].filter(t => t !== form.tono && (t !== 'Profesional' || form.tono !== 'Elegante') && (t !== 'Urgente' || form.tono !== 'Divertido'))[(i - 1) % 2]}
+                            tono={form.tono === 'Minimalista' ? form.tono : (i === 0 ? form.tono : ['Divertido', 'Elegante', 'Moderno'].filter(t => t !== form.tono && (t !== 'Profesional' || form.tono !== 'Elegante') && (t !== 'Urgente' || form.tono !== 'Divertido'))[(i - 1) % 2])}
                             formato={form.formato}
+                            userImages={imagePreviews}
                             onRendered={(dataUrl) => setRenderedImages(prev => ({...prev, [i]: dataUrl}))}
                           />
                         </div>
                       ) : (
                         <div className={styles.adImagePlaceholder}>
-                          {imagePreviews[0] && <img src={imagePreviews[0]} alt="Base" style={{width:'100%', height:'100%', objectFit:'cover', opacity:0.4}} />}
-                          <div className={styles.adOverlay}>
-                            <strong>{v.headline}</strong>
-                          </div>
+                          Error al generar la imagen
                         </div>
                       )}
                       {!paid && renderedImages[i] && (
                         <div className={styles.adWatermark}>
-                          <span>PREVIEW</span>
-                          <span>PREVIEW</span>
-                          <span>PREVIEW</span>
+                          <span>PREMIUM PREVIEW</span>
+                          <span>PREMIUM PREVIEW</span>
+                          <span>PREMIUM PREVIEW</span>
                         </div>
                       )}
                     </div>
                     <div className={styles.adInfo} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                      <span className={styles.adBadge}>Variación {i + 1}</span>
+                      <span className={styles.adBadge}>Diseño {i + 1}</span>
                       <h3 className={styles.adHeadline}>{v.headline}</h3>
                       <p className={styles.adCopy}>{v.copy}</p>
                       <span className={styles.adCta}>👉 {v.cta}</span>
@@ -441,6 +459,7 @@ export default function CrearPage() {
                 ))}
               </div>
 
+              {/* ... (existing unlock block) ... */}
               {!paid ? (
                 <div className={styles.unlockSection}>
                   {credits > 0 ? (
@@ -472,57 +491,21 @@ export default function CrearPage() {
                           {actionLoading ? 'Desbloqueando...' : 'Desbloquear por 1 Crédito'}
                         </button>
                         
-                        <button 
-                          className="btn-outline"
-                          title="Actualizar mi saldo de créditos si acabo de recargar"
-                          style={{marginTop:'16px', padding:'16px', fontSize:'18px'}}
-                          onClick={async () => {
-                             if(user) await loadCredits(user.id);
-                          }}>
-                          🔄
-                        </button>
+                        <button className="btn-outline" style={{marginTop:'16px', padding:'16px', fontSize:'18px'}} onClick={async () => { if(user) await loadCredits(user.id); }}>🔄</button>
                       </div>
                       {payError && <p style={{color:'#ff6b6b', marginTop:'12px'}}>❌ {payError}</p>}
                     </div>
                   ) : (
                     <div className={styles.unlockBox}>
                       <h3 style={{color:'#d4af37'}}>⚠️ Sin créditos suficientes</h3>
-                      <p>Para descargar estas piezas en alta calidad necesitas saldo. Realiza una recarga manual de créditos.</p>
-                      
-                      <div style={{background:'rgba(255,255,255,0.05)', borderRadius:'12px', padding:'24px', margin:'20px auto', maxWidth:'400px', textAlign:'center'}}>
-                        <h4 style={{margin:'0 0 12px', color:'white', fontSize:'16px'}}>Pasos para recargar:</h4>
-                        <ol style={{margin:'0', padding:'0 0 0 20px', textAlign:'left', color:'var(--text-secondary)', fontSize:'14px', lineHeight:'1.8'}}>
-                          <li>Comunícate con nuestro soporte vía WhatsApp.</li>
-                          <li>Solicita el número de cuenta.</li>
-                          <li>Deposita el valor de los créditos que quieras (<b>Q25 por 1 crédito</b>).</li>
-                          <li>Tus créditos serán recargados inmediatamente.</li>
-                        </ol>
-                      </div>
-
+                      <p>Para descargar estas piezas Premium necesitas saldo.</p>
                       <div style={{display:'flex', alignItems:'center', gap:'8px', marginTop:'16px'}}>
-                        <button 
-                          className={styles.payBtn} 
-                          style={{background:'#25D366', color:'white', fontSize:'16px', flex:'1'}}
-                          onClick={() => {
-                            const whatsappMsg = `¡Hola! Me gustaría solicitar el número de cuenta para recargar saldo (créditos) en mi cuenta de SGIA.\n\nMi correo registrado es: *${user?.email}*`;
-                            const whatsappNumber = "50230236365"; 
-                            window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
-                          }}>
-                          💬 Solicitar Cuenta por WhatsApp
+                        <button className={styles.payBtn} style={{background:'#25D366', color:'white', fontSize:'16px', flex:'1'}}
+                          onClick={() => window.open(`https://wa.me/50230236365?text=${encodeURIComponent(`¡Hola! Me gustaría recargar saldo. Mi correo es: *${user?.email}*`)}`, '_blank')}>
+                          💬 Recargar Créditos por WhatsApp
                         </button>
-                        <button 
-                          className="btn-outline"
-                          title="Refrescar Saldo"
-                          style={{fontSize:'16px', padding:'14px'}}
-                          onClick={async () => {
-                             setActionLoading(true);
-                             if(user) await loadCredits(user.id);
-                             setActionLoading(false);
-                          }}>
-                          🔄
-                        </button>
+                        <button className="btn-outline" style={{fontSize:'16px', padding:'14px'}} onClick={async () => { setActionLoading(true); if(user) await loadCredits(user.id); setActionLoading(false); }}>🔄</button>
                       </div>
-                      <p className={styles.unlockNote}>Te atenderemos en breve. Si ya pagaste y te dimos los créditos, aprieta 🔄.</p>
                     </div>
                   )}
                 </div>
@@ -536,7 +519,7 @@ export default function CrearPage() {
                         renderedImages[i] && (
                           <button key={i} className={styles.payBtn} style={{background:'#28c840'}}
                             onClick={() => handleDownloadHD(renderedImages[i], i)}>
-                            ⬇️ Descargar Var {i+1}
+                            ⬇️ Descargar Diseño {i+1}
                           </button>
                         )
                       ))}

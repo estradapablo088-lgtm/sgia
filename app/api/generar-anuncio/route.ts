@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,12 +64,12 @@ Responde en español, solo la descripción, máximo 200 palabras.`
       analisisImagen = visionResponse.choices[0].message.content || '';
     }
 
-    // ─── PASO 2: Generar copy publicitario ───
+    // ─── PASO 2: Generar copy publicitario (Ahora usando Claude 3.5 Sonnet) ───
     const systemPrompt = `Eres un experto en copywriting publicitario para redes sociales en Latinoamérica. 
-Tu trabajo es generar anuncios publicitarios que vendan, usando lenguaje natural y persuasivo.
-Siempre respondes en español con JSON válido, sin texto adicional.`;
+Tu trabajo es generar anuncios publicitarios que vendan, usando lenguaje natural, empático y MUY persuasivo. Evita clichés baratos y busca conectar genuinamente.
+Siempre respondes estrictamente con un JSON válido, sin texto adicional antes ni después del bloque JSON.`;
 
-    const userPrompt = `Crea 3 variaciones de anuncio publicitario con estos datos:
+    const userPrompt = `Crea 3 variaciones creativas y humanas de anuncio publicitario con estos datos:
 - Negocio: ${negocio}
 - Tipo: ${tipo}
 - Lo que se promociona: ${descripcion}
@@ -76,32 +78,51 @@ Siempre respondes en español con JSON válido, sin texto adicional.`;
 - Tono: ${tono}
 - Formato: ${formato}
 ${extras ? `\n💬 INSTRUCCIONES ADICIONALES DEL USUARIO:\n${extras}\n\nES MUY IMPORTANTE que sigas estas instrucciones al pie de la letra.` : ''}
-${analisisImagen ? `\n📸 ANÁLISIS DE LA FOTO DEL NEGOCIO:\n${analisisImagen}\n\nUSA esta descripción para inspirar el copy. Menciona detalles reales que viste en la foto (colores, ambiente, productos).` : ''}
+${analisisImagen ? `\n📸 ANÁLISIS DE LA FOTO REAL DEL NEGOCIO (para inspirarte):\n${analisisImagen}\n\nUsa esta descripción para que el copy mencione colores reales, el ambiente o producto específico que se vio en la foto.` : ''}
 
-Genera exactamente este JSON (sin texto antes ni después):
+Genera exactamente este JSON vacío (respeta las llaves y formato y no agregues nada más que JSON):
 {
   "variaciones": [
     {
-      "headline": "Titular impactante y creativo (máx 8 palabras, con emoji relevante)",
-      "copy": "Texto persuasivo del anuncio (2-3 oraciones que conecten emocionalmente, mencionen lo que se ve en la foto)",
-      "cta": "Llamada a la acción urgente (máx 5 palabras, con emoji)"
+      "headline": "Titular impactante corto (máx 8 palabras, con emoji relevante)",
+      "copy": "Texto muy persuasivo y conversacional del anuncio (2-3 oraciones fluidas, que conecten emocionalmente)",
+      "cta": "Llamada a la acción clara (máx 5 palabras, emoji)"
     }
   ],
-  "descripcionImagen": "INSTRUCCIÓN PARA GENERAR IMAGEN: Crea una imagen publicitaria profesional que muestre [describe exactamente qué debe aparecer basándote en la foto real del negocio: productos, colores, ambiente]. Estilo: fotografía comercial de alta calidad, iluminación profesional, composición para ${formato === 'instagram-post' ? 'post cuadrado de Instagram' : formato === 'historia' ? 'historia vertical de Instagram' : 'banner web'}. Tono visual: ${tono}. NO incluir texto en la imagen. La imagen debe verse como una foto real profesional de un anuncio de ${tipo}."
+  "descripcionImagen": "INSTRUCCIÓN PARA GENERAR IMAGEN: Si el estilo es Minimalista esta variable se ignora. En caso contrario, describe una fotografía comercial fotorrealista basada estrictamente en lo analizado del negocio. Prohibido mencionar dibujos, renders o estilos animados. Debe ser fotografía real."
 }`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_tokens: 1000,
-      temperature: 0.7,
-    });
-
-    const rawText = completion.choices[0].message.content || '{}';
+    let rawText = '{}';
     let parsed: any = {};
+    
+    try {
+      // Intentar primero con Claude
+      const completion = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20240620',
+        max_tokens: 1024,
+        temperature: 0.7,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: userPrompt }
+        ]
+      });
+
+      rawText = ('text' in completion.content[0]) ? completion.content[0].text : '{}';
+    } catch (anthropicError: any) {
+      console.warn("Claude falló (posible falta de fondos), usando GPT-4o como respaldo:", anthropicError.message);
+      // Fallback a OpenAI (GPT-4o) para que el anuncio se genere sí o sí
+      const openaiCompletion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+      rawText = openaiCompletion.choices[0].message?.content || '{}';
+    }
+
     try {
       const clean = rawText.replace(/```json\n?|\n?```/g, '').trim();
       parsed = JSON.parse(clean);
@@ -109,32 +130,39 @@ Genera exactamente este JSON (sin texto antes ni después):
       parsed = { variaciones: [{ headline: '🎯 Anuncio generado', copy: rawText, cta: '¡Contáctanos!' }] };
     }
 
-    // ─── PASO 3: Generar imagen con DALL-E 3 ───
+    // ─── PASO 3: Generar imagen o fondo con DALL-E 3 ───
     let imagenUrl: string | null = null;
     try {
-      // Construir un prompt mucho más específico basado en la foto real
-      let imgPrompt = parsed.descripcionImagen || '';
+      let imgPrompt = '';
       
-      if (!imgPrompt && analisisImagen) {
-        imgPrompt = `Professional advertising photo for a ${tipo} called "${negocio}". 
+      // Lógica Híbrida: Si el estilo es Collage / Minimalista, generamos SOLO un fondo vacío increíble
+      if (tono === 'Minimalista') {
+         imgPrompt = `CREATE EXACTLY THIS: An empty professional photography studio background or highly aesthetic minimalist surface fitting the vibe of a ${tipo} business called "${negocio}". 
+Possible ideas: Clean white or pastel advertising stage, elegant dark marble, clean wood from above, or vibrant solid gradient with subtle spotlight.
+IMPORTANT: PURE BACKGROUND ONLY. ABSOLUTELY NO OBJECTS. NO SUBJECTS. NO PEOPLE. NO FOOD. NO TEXT. EMPTY MINIMALIST CANVAS. Meticulously photorealistic, 8k resolution, shot with DSLR.`;
+      } else {
+        // Lógica tradicional de generación completa
+        imgPrompt = parsed.descripcionImagen || '';
+        if (!imgPrompt && analisisImagen) {
+          imgPrompt = `Ultra-realistic professional photography for a ${tipo} called "${negocio}". 
 Based on the actual business: ${analisisImagen}. 
-Create a high-quality commercial photograph showing the products/services in an appetizing and attractive way.
-Style: ${tono}, professional lighting, vibrant colors, ${formato === 'instagram-post' ? 'square composition' : formato === 'historia' ? 'vertical composition' : 'horizontal banner composition'}.
-This should look like a real professional ad photo. Do NOT include any text or logos in the image.`;
-      } else if (!imgPrompt) {
-        imgPrompt = `Professional advertising photograph for a ${tipo} business called "${negocio}", promoting ${descripcion}. 
-High quality commercial photography, ${tono} style, appetizing presentation, professional lighting, vibrant colors.
-Composition for social media advertising. Do NOT include any text or logos.`;
+Create a high-quality commercial photograph showing the products/services in a hyper-realistic, authentic way.
+Style: RAW photography, shot on 35mm lens, realistic lighting, vibrant but natural colors, ${formato === 'instagram-post' ? 'square composition' : formato === 'historia' ? 'vertical composition' : 'horizontal banner composition'}.
+This MUST look like a real professional photo, NOT a 3D render or animation.`;
+        } else if (!imgPrompt) {
+          imgPrompt = `Ultra-realistic professional photography for a ${tipo} business called "${negocio}", promoting ${descripcion}. 
+High quality commercial photography, appetizing presentation, natural realistic lighting, vivid but authentic colors.
+Composition for social media advertising. This MUST look like a real professional photo, absolutely NO 3D renders or illustrations.`;
+        }
+        imgPrompt += ' IMPORTANT: Meticulously photorealistic, 8k resolution, shot with DSLR. Absolutely NO 3D renders, NO cartoons, NO illustrations, NO digital art, NO typography, NO words, NO text. Pure photographic realism only.';
       }
-
-      // Asegurarnos de que el prompt no pide texto en la imagen
-      imgPrompt += ' IMPORTANT: Do NOT render any text, letters, words, or typography in the image. Pure visual only.';
 
       const imgResponse = await openai.images.generate({
         model: 'dall-e-3',
         prompt: imgPrompt,
         size: formato === 'historia' ? '1024x1792' : formato === 'banner' ? '1792x1024' : '1024x1024',
         quality: 'hd',
+        style: 'natural',
         n: 1,
       });
       imagenUrl = imgResponse.data?.[0]?.url || null;
